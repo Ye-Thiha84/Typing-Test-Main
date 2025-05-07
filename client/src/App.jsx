@@ -9,7 +9,7 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(15);
   const [isTestRunning, setIsTestRunning] = useState(false);
   const [results, setResults] = useState(null);
-  const inputRef = useRef(null);
+  const inputDivRef = useRef(null);
 
   const fetchApi = async () => {
     try {
@@ -37,6 +37,12 @@ function App() {
     return () => clearInterval(timer);
   }, [isTestRunning, timeLeft]);
 
+  useEffect(() => {
+    if (isTestRunning && inputDivRef.current) {
+      inputDivRef.current.focus();
+    }
+  }, [isTestRunning]);
+
   const startTest = () => {
     if (typingTests.length > 0) {
       setIsTestRunning(true);
@@ -44,7 +50,6 @@ function App() {
       setUserInput('');
       setResults(null);
       setCurrentText(typingTests[Math.floor(Math.random() * typingTests.length)]);
-      inputRef.current?.focus();
     }
   };
 
@@ -64,15 +69,21 @@ function App() {
     });
   };
 
-  const handleInput = (e) => {
-    if (isTestRunning) {
-      setUserInput(e.target.value);
+  const handleKeyPress = (e) => {
+    if (!isTestRunning) return;
+
+    e.preventDefault();
+    
+    if (e.key === 'Backspace') {
+      setUserInput(prev => prev.slice(0, -1));
+    } else if (e.key.length === 1) {
+      setUserInput(prev => prev + e.key);
     }
   };
 
   const renderText = () => {
     return currentText.split('').map((char, index) => {
-      let color = '#ffffff';
+      let color = 'black';
       if (index < userInput.length) {
         color = userInput[index] === char ? '#4CAF50' : '#FF5252';
       }
@@ -80,7 +91,7 @@ function App() {
         <span 
           key={index} 
           style={{ 
-            color, 
+            color,
             backgroundColor: index === userInput.length ? '#555' : 'transparent',
             transition: 'all 0.2s ease'
           }}
@@ -92,53 +103,65 @@ function App() {
   };
 
   return (
-    <div className="container">
-      <h2>Typing Test Simulator</h2>
-      
-      {!isTestRunning && !results && (
-        <button 
-          className="start-button"
-          onClick={startTest} 
-          disabled={typingTests.length === 0}
-        >
-          Start Test
-        </button>
-      )}
+    <div className="app-container">
+      <header className="header">
+        <h1>Rapid Type</h1>
+        <p className="description">
+          Boost your typing speed with instant feedback. Practice, improve, and track your progress in real-time.
+        </p>
+      </header>
 
-      {isTestRunning && (
-        <>
-          <div className="timer">
-            Time Left: {timeLeft}s
-          </div>
-          <div className="text-display">
-            {renderText()}
-          </div>
-          <textarea
-            ref={inputRef}
-            value={userInput}
-            onChange={handleInput}
-            className="input-area"
-            disabled={!isTestRunning}
-            autoFocus
-          />
-        </>
-      )}
-
-      {results && (
-        <div className="results">
-          <h3>Test Results</h3>
-          <p>Words per Minute (WPM): {results.wpm}</p>
-          <p>Accuracy: {results.accuracy}%</p>
-          <p>Correct Characters: {results.correctChars}</p>
-          <p>Total Characters: {results.totalChars}</p>
+      <main className="main-content">
+        {!isTestRunning && !results && (
           <button 
             className="start-button"
-            onClick={startTest}
+            onClick={startTest} 
+            disabled={typingTests.length === 0}
           >
-            Try Again
+            Start Typing Test
           </button>
-        </div>
-      )}
+        )}
+
+        {isTestRunning && (
+          <div className="test-container">
+            <div className="timer">
+              Time Left: {timeLeft}s
+            </div>
+            <div className="text-display">
+              {renderText()}
+            </div>
+            <div
+              ref={inputDivRef}
+              tabIndex={0}
+              onKeyDown={handleKeyPress}
+              className="input-div"
+              style={{
+                position: 'absolute',
+                opacity: 0,
+                height: 0,
+                width: 0,
+                overflow: 'hidden'
+              }}
+            />
+          </div>
+        )}
+
+        {results && (
+          <div className="results">
+            <h3>Test Results</h3>
+            <p>Words per Minute (WPM): {results.wpm}</p>
+            <p>Accuracy: {results.accuracy}%</p>
+            <p>Correct Characters: {results.correctChars}</p>
+            <p>Total Characters: {results.totalChars}</p>
+            <button 
+              className="start-button"
+              onClick={startTest}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
